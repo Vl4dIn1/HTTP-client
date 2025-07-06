@@ -1,63 +1,40 @@
-import socket
-from urllib.parse import urlparse
+import socket 
 
-
-def make_request(url, method='GET', headers=None, timeout=15, data=None):
-    parsed_url = urlparse(url)
-    host = parsed_url.hostname
-    path = parsed_url.path
+if __name__ == '__main__':
+    host = 'example.com'
     port = 80
-    if parsed_url.query:
-        path += '?' + parsed_url.query
-
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
-    sock.connect((host,port))
-    requests_lines = [
-        f'{method} {path} HTTP/1.1',
-        f'Host: {host}',
-        'Connection: close'
-    ]
 
-    if headers:
-        for name, value in headers.items():
-            requests_lines.append(f'{name}: {value}')
-    if data:
-        data_length = len(data.encode("utf-8"))
-        requests_lines.append (f'Content-length: {data_length}')
+    try:
+        sock.connect((host,port))
+        print(f'Вы успешно подключились к сайту {host} и порту {port}')
+        request = (
+            f"GET / HTTP/1.1\r\n"
+            f"Host: {host}\r\n"
+            f"Connection: close \r\n"
+            f"\r\n"
+        )
+        request_byte = request.encode('utf-8')
+        sock.sendall(request_byte)
+        print('\r\n ---Наш запрос--- \r\n' + f'{request}')
 
-    requests_lines.append('') # разделяем тело от запроса
-    request = '\r\n'.join(requests_lines).encode('utf-8')
-    sock.sendall(request)
+        response_byte = b''
+        while True:
+            chunk = sock.recv(1024)
+            if not chunk:
+                break
+            response_byte += chunk
+        response = response_byte.decode('utf-8')
+        headers_block = response.split('\r\n\r\n')[0]
+        body = response.split('\r\n\r\n')[1]
+        server_status = headers_block.split('\r\n')[0]
+        meta_data_lines = headers_block[len(server_status)+4:].split('\r\n')
 
-    if data:
-        sock.sendall(data.encode('utf-8'))
 
-    response = b''
-    while True:
-        read_data_socket = sock.recv(1024)
-        if not read_data_socket:
-            break
-        response += read_data_socket
 
-    response_str = response.decode('utf-8')
-    headers_data, body_data = response_str.split('\r\n\r\n', 1)
-    status_line = headers_data.split('\r\n')[0]
-    version_http = status_line.split(' ')[0]
-    status_code = status_line.split(' ')[1]
-    status_text = status_line.split(' ')[2]
 
-    heads = {}
 
-    for line in headers_data.split('\r\n')[1:]:
-        name_line, value_line = line.split(':', 1)
-        heads[name_line] = value_line.strip()
 
-    return {
-        'http_version': version_http,
-        'status_code': int(status_code),
-        'status_text': status_text,
-        'headers': heads,
-        'body': body_data
-    }
-#todo
+    finally:
+        print('Закрываем соединение.')
+        sock.close()
