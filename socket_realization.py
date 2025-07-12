@@ -1,4 +1,6 @@
 import socket 
+from urllib.parse import urlparse
+
 
 if __name__ == '__main__':
     host = 'example.com'
@@ -25,10 +27,10 @@ if __name__ == '__main__':
                 break
             response_byte += chunk
         response = response_byte.decode('utf-8')
-        headers_block = response.split('\r\n\r\n')[0]
-        body = response.split('\r\n\r\n')[1]
-        server_status = headers_block.split('\r\n')[0]
-        meta_data_lines = headers_block[len(server_status)+4:].split('\r\n')
+        headers_block = response.split('\r\n\r\n')[0] #
+        body = response.split('\r\n\r\n')[1]  #
+        server_status = headers_block.split('\r\n')[0]  # сервер статус
+        meta_data_lines = headers_block[len(server_status)+4:].split('\r\n') #
 
 
 
