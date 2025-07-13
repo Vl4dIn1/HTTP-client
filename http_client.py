@@ -1,52 +1,51 @@
+import json
+import socket_function
 import click
-import requests
 
+from socket_function import get_do
 
+COOKIE_FILE = "cookie_jar.json"
 
-def parse_headers(header_list):
-    headers = {}
-    for item in header_list:
-        name_heading, value_heading = item.split(':', 1)
-        headers[name_heading.strip()] = value_heading.strip()
+def load_cookie():
+    try:
+        with open('cookie_jar.json', 'r') as f:
+            data = json.load(f)
+            return data
+    except:
+        return {}
 
-    return headers
-
+def save_cookie(data):
+    with open('cookie_jar.json', 'w') as f:
+        print('Записали куки')
+        print(f"{data}")
+        json.dump(data, f, indent= 4)
 
 @click.command()
 @click.option('--url', required=True, help='URL запроса')
 @click.option('--method', default='GET', help='Метод запроса (GET/POST/...')
-@click.option('--data', help='Тело запроса')
-@click.option('--header', multiple=True, help='Заголовки ')
+@click.option('--body', help='Тело запроса')
+@click.option('--headers', multiple=True, help='Заголовки ')
 @click.option('--timeout', default=15, help='Таймаут на ответ сервера')
 @click.option('--output', help='Файл для сохранения данных')
 
 
-def cli(url, method, data, header, timeout, output):
-    headers = parse_headers(header)
-
+def cli(url, method, body, headers, timeout, output):
+    cookie = load_cookie()
     try:
-        session = requests.Session()
-        response = session.request(
-            method=method.upper(),
-            url=url,
-            data=data,
-            headers=headers,
-            timeout=timeout
-        )
 
-        if output:
-            with open (output, 'w' , encoding='utf-8') as f:
-                f.write(response.text)
-            click.echo(f'Ответ успешно записан в файл {output}')
-        else:
-            click.echo(f'Файл не указан. Ответ от сервера : {response.text}')
+        headers_dict = {}
+        for head in headers:
+            head_split = head.split(':', 1)
+            headers_dict[head_split[0].strip()] = head_split[1].strip()
 
-    except requests.exceptions.RequestException as exc:
-        click.echo(f'Не удалось выполнить запрос. Ошибка: {exc}', err=True)
+        updates_cookie = socket_function.get_do(url=url, headers=headers_dict, method=method, body=body, timeout=timeout,
+                                               file_name=output, cookie=cookie)
+        save_cookie(updates_cookie)
 
 
-
-
+    except Exception as exc:
+        print(f'Произошла ошибка {exc}')
 
 if __name__ == '__main__':
     cli()
+
