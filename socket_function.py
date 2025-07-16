@@ -1,6 +1,7 @@
 import socket
-from typing import Dict, Tuple
+from typing import Dict
 from urllib.parse import urlparse
+import ssl
 
 
 
@@ -10,14 +11,18 @@ def get_do(url: str, headers: Dict[str, str], body: str, method: str, timeout: f
     parsed_url = urlparse(url)
     host = parsed_url.hostname
     port = parsed_url.port
+    scheme = parsed_url.scheme
     if not port:
         port = 80  # На случай, если порта не было указано
+        if scheme == 'https':
+            port = 443
     path = parsed_url.path or "/"
 
     # --- Создание и настройка сокета ---
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((host, port))
+    sock = socket.create_connection((host,port))
+    if scheme == 'https':
+        context = ssl.create_default_context()
+        sock = context.wrap_socket(sock, server_hostname=host)
     sock.settimeout(timeout)
 
     # --- Формирование заголовков и тела запроса ---
@@ -65,6 +70,7 @@ def get_do(url: str, headers: Dict[str, str], body: str, method: str, timeout: f
         if not response:
             break
         all_response_byte += response
+    sock.close()
 
     # --- Разбор и вывод ответа ---
     if b"\r\n\r\n" in all_response_byte:
@@ -82,5 +88,5 @@ def get_do(url: str, headers: Dict[str, str], body: str, method: str, timeout: f
                 with open(file_name, "wb") as f:
                     print("Сохранение тела ответа сервера в байтах")
                     f.write(response_split[1])
-        sock.close()
+
         return new_cookie
