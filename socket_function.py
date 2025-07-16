@@ -67,7 +67,7 @@ def get_do(url: str, headers: Dict[str, str], body: str, method: str, timeout: f
         all_response_byte += response
 
     # --- Разбор и вывод ответа ---
-    if all_response_byte.find(b"\r\n\r\n"):
+    if b"\r\n\r\n" in all_response_byte:
         response_split = all_response_byte.split(b"\r\n\r\n", 1)
         headers_full = response_split[0].decode("utf-8")
         new_cookie = cookie.copy()
