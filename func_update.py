@@ -92,8 +92,6 @@ def get_do(url: str, headers: Dict[str, str], body: str, method: str, timeout: f
     response_chanced = 'transfer-encoding: chunked' in headers_full.lower()
 
     if 300 <= status_code < 400:
-        if str(status_code) == '302':
-            method = 'GET'
         return get_do(url=url_redirect, headers=headers, method=method, body=body, timeout=timeout,
                       file_name=file_name, cookie=new_cookie)
     body_chunk = response_split[1]
